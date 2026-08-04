@@ -1,0 +1,15 @@
+fase,tarea,inicio,fin,depende_de
+1. Preparación,Diseño de arquitectura + diagrama,2026-08-10,2026-08-12,
+1. Preparación,IAM: rol + policies (least privilege),2026-08-12,2026-08-14,Diseño de arquitectura + diagrama
+1. Preparación,VPC: subred + Gateway Endpoint,2026-08-13,2026-08-17,Diseño de arquitectura + diagrama
+1. Preparación,S3: bucket + versioning + lifecycle,2026-08-17,2026-08-19,IAM: rol + policies (least privilege)
+1. Preparación,App: modo dual-write (código),2026-08-18,2026-08-21,S3: bucket + versioning + lifecycle
+2. Prueba (dual-write),Deploy dual-write a staging,2026-08-24,2026-08-25,App: modo dual-write (código)
+2. Prueba (dual-write),Validación de integridad (checksums disco vs S3),2026-08-25,2026-08-27,Deploy dual-write a staging
+2. Prueba (dual-write),Pruebas de carga y permisos,2026-08-26,2026-08-28,Deploy dual-write a staging
+3. Corte,Freeze de escritura a disco + sync final,2026-08-31,2026-08-31,Validación de integridad (checksums disco vs S3)
+3. Corte,Cutover: flag de lectura pasa a S3,2026-08-31,2026-08-31,Freeze de escritura a disco + sync final
+3. Corte,Monitoreo intensivo post-corte,2026-08-31,2026-09-02,Cutover: flag de lectura pasa a S3
+4. Validación y cierre,Verificación de métricas y costos reales,2026-09-02,2026-09-03,Monitoreo intensivo post-corte
+4. Validación y cierre,Backup final del disco + decommission,2026-09-03,2026-09-03,Verificación de métricas y costos reales
+4. Validación y cierre,Documentación final + demo al equipo,2026-09-03,2026-09-04,Backup final del disco + decommission

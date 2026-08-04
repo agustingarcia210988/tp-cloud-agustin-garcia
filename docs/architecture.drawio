@@ -1,0 +1,76 @@
+<mxfile host="app.diagrams.net" version="24.0.0">
+  <diagram id="pixelhub-arch" name="PixelHub - Galeria a S3">
+    <mxGraphModel dx="1200" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ===================== ANTES ===================== -->
+        <mxCell id="antes_lane" value="ANTES — storage acoplado al computo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef2f2;strokeColor=#b91c1c;verticalAlign=top;fontColor=#b91c1c;fontStyle=1;fontSize=14;align=left;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="640" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cliente_antes" value="Cliente&#10;(navegador)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="120" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="app01_antes" value="app-01 (EC2)&#10;monolito web + app" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="300" y="120" width="140" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="disco" value="Disco local (EBS)&#10;imagenes subidas&#10;&#10;&#9888; SPOF" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#fecaca;strokeColor=#b91c1c;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="110" width="130" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_antes_1" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="cliente_antes" target="app01_antes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_antes_2" value="lee / escribe archivos" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;startArrow=block;" edge="1" parent="1" source="app01_antes" target="disco">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== DESPUES ===================== -->
+        <mxCell id="despues_lane" value="DESPUES — storage desacoplado (S3)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ecfdf5;strokeColor=#065f46;verticalAlign=top;fontColor=#065f46;fontStyle=1;fontSize=14;align=left;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="320" width="1300" height="360" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cliente_despues" value="Cliente&#10;(navegador)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="80" y="470" width="120" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="vpc_box" value="VPC pixelhub-vpc (10.42.0.0/16)&#10;subred pixelhub-subnet-app" style="rounded=1;dashed=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#1e3a8a;fontColor=#1e3a8a;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="280" y="390" width="520" height="240" as="geometry" />
+        </mxCell>
+
+        <mxCell id="app01_despues" value="app-01 (EC2)&#10;stateless&#10;t3.micro" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="320" y="480" width="140" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="role" value="IAM Role&#10;pixelhub-app-role&#10;(instance profile)" style="shape=note;whiteSpace=wrap;html=1;fillColor=#fef9c3;strokeColor=#92400e;size=14;" vertex="1" parent="1">
+          <mxGeometry x="330" y="580" width="140" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="endpoint" value="VPC Gateway Endpoint&#10;com.amazonaws.us-east-1.s3&#10;(gratis, sin NAT)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1e3a8a;" vertex="1" parent="1">
+          <mxGeometry x="560" y="470" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s3" value="S3 · pixelhub-images&#10;versionado + lifecycle&#10;(uploads/* -&gt; Glacier a 90d)" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#bbf7d0;strokeColor=#065f46;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="480" width="220" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_desp_1" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="cliente_despues" target="app01_despues">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_desp_2" value="assume role (STS, temporal)" style="edgeStyle=orthogonalEdgeStyle;dashed=1;html=1;endArrow=block;strokeColor=#92400e;fontColor=#92400e;" edge="1" parent="1" source="app01_despues" target="role">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_desp_3" value="GetObject/PutObject uploads/*" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="app01_despues" target="endpoint">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_desp_4" value="ruta privada (AWS backbone)" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="endpoint" target="s3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

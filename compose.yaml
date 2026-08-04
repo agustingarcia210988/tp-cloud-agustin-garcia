@@ -1,0 +1,19 @@
+# LocalStack — emula S3, IAM, EC2 (incl. VPC endpoints) y STS localmente.
+# Referencia: https://github.com/maxflorentin/proyecto-final-starter
+
+services:
+  localstack:
+    image: localstack/localstack:3.8
+    container_name: pixelhub-localstack
+    ports:
+      - "4566:4566"   # edge port — todas las APIs entran por acá
+    environment:
+      - SERVICES=s3,iam,ec2,sts
+      - DEBUG=0
+      - PERSISTENCE=1
+    volumes:
+      - localstack-data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  localstack-data:
