@@ -83,13 +83,13 @@ Cada script imprime qué recurso creó (o encontró ya existente) y su ARN/ID.
 - [x] `docs/gantt.*` — cronograma de migración
 - [x] `docs/costs.md` — estimación de costos mensual
 - [x] README con integrantes completados (proyecto individual)
-- [x] Repo creado a partir del starter y pusheado a GitHub
+- [x] Repo creado a partir del starter y pusheado a GitHub: [agustingarcia210988/tp-cloud-agustin-garcia](https://github.com/agustingarcia210988/tp-cloud-agustin-garcia)
 - [x] Corrida real contra LocalStack con Docker (validado end-to-end el 2026-08-04: los 4 scripts corren e idempotentes en un segundo pase, `pytest -v` → 10 passed)
-- [ ] Estimación cargada en calculator.aws con link guardado en `docs/costs.md`
+- [x] Estimación cargada en calculator.aws con link guardado en `docs/costs.md` (total oficial: $62.42/mes)
 
 ## Próximo paso
 
-1. Cargar la estimación de `docs/costs.md` en [calculator.aws](https://calculator.aws) y guardar el link compartible en el mismo doc.
+1. Subir los dos PNG (`docs/architecture.png`, `docs/gantt.png`) al repo de GitHub — son binarios, se suben a mano ("Add file" → "Upload files").
 2. Revisar la rúbrica una vez más antes de entregar (ver `CLAUDE.md`).
 
 > Nota (Windows): si corrés los scripts en una consola con codepage cp1252, vas a ver `UnicodeEncodeError` en los prints con `→`. No es un bug del código — corré con `PYTHONUTF8=1 python scripts/...` (o `set PYTHONUTF8=1` antes). En Linux/Mac no hace falta, la consola ya es UTF-8.

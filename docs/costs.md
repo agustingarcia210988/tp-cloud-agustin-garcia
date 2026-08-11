@@ -46,8 +46,11 @@ El archivado a Glacier no mueve mucho la aguja acá porque **el 80% del costo me
 
 ## Link de la calculadora oficial
 
-> Completar con el link compartible de `calculator.aws` una vez cargada la estimación del grupo:
-> `https://calculator.aws/#/estimate?id=___________`
+**[calculator.aws/#/estimate?id=a165ebb18479f4eac63a9ff1e9ff5b199a9f4d43](https://calculator.aws/#/estimate?id=a165ebb18479f4eac63a9ff1e9ff5b199a9f4d43)**
+
+Cargada con los mismos supuestos de esta tabla (S3 Standard 110 GB, 5.000 PUT, 2.000.000 GET, 572 GB de data transfer out a Internet; EC2 `t3.micro` on-demand, 730 h/mes). **Total oficial: $62.42/mes** ($54.83 S3 + $7.59 EC2), contra los ≈$53.43 de la tabla de arriba.
+
+La diferencia (~$9) es la partida "no obvia" real de este ejercicio: el Pricing Calculator dice explícitamente *"the calculations below exclude Free Tier discounts"* — cobra los 572 GB completos de transfer out al precio de $0.09/GB. La tabla de arriba, en cambio, restaba los 100 GB gratis del free tier de AWS antes de aplicar la tarifa (472 GB × $0.09 = $42.48). Los dos números son "correctos" según qué se les pide: la calculadora te da el peor caso (sin asumir free tier, que no está garantizado a largo plazo — es beneficio de cuenta nueva), y la tabla manual te da el estimado esperable con una cuenta ya establecida. **El número que vale para la entrega es el de la calculadora ($62.42/mes)**, por ser la fuente oficial pedida por la consigna.
 
 ## Fuentes (precios verificados, agosto 2026, us-east-1)
 

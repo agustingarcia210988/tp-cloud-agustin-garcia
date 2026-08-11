@@ -17,7 +17,7 @@ Todo corre contra **LocalStack** (no AWS real, no hay cuenta ni credenciales rea
 - [x] **`docs/architecture.md`**: tabla de componentes, SPOFs identificados y decisiones de identidad.
 - [x] **`docs/decisions.md`**: 6 ADRs (alcance, rol IAM vs access keys, VPC endpoint vs NAT, bucket privado vs público, lifecycle a Glacier, estrategia de corte dual-write).
 - [x] **`docs/gantt.md` + `gantt.png` + `gantt.csv`**: cronograma de 4 fases (preparación, prueba/dual-write, corte, validación), fechas concretas.
-- [x] **`docs/costs.md`**: estimación mensual con precios reales verificados (S3, EC2 t3.micro, transfer out, Glacier, endpoint gratis) — falta cargarla en calculator.aws y pegar el link.
+- [x] **`docs/costs.md`**: estimación mensual con precios reales verificados (S3, EC2 t3.micro, transfer out, Glacier, endpoint gratis) — cargada en calculator.aws, link real pegado (total oficial: $62.42/mes; ver nota sobre free tier en el doc).
 - [x] **`iam/`**: `trust_policy.json`, `s3_access_policy.json` (least privilege, deny explícito de `DeleteObject`), `bucket_policy.json` (deny fuera del VPC endpoint y sin TLS).
 - [x] **`scripts/`**: `iam_demo.py`, `vpc_demo.py`, `s3_demo.py`, `ec2_demo.py` — idempotentes, boto3 contra LocalStack vía `scripts/_aws.py`.
 - [x] **`tests/test_infra.py`**: 10 tests unitarios con `moto` (mockeado, no requiere Docker). **Ya corridos y pasando.**
@@ -29,7 +29,7 @@ No reabras estas decisiones sin una razón concreta — están documentadas en `
 
 ## Qué falta (esto sí es trabajo real pendiente)
 
-1. **Cargar `docs/costs.md` en calculator.aws** y pegar el link compartible real (hoy tiene un placeholder).
+1. **Subir los dos PNG** (`docs/architecture.png`, `docs/gantt.png`) al repo de GitHub — son binarios, quedaron pendientes de subir a mano vía la web de GitHub.
 2. Opcional / mejora: si se quiere subir de nota, agregar un 5º servicio (ej. CloudFront delante del bucket, mencionado como mejora futura en ADR 004) o pasar los scripts de AWS CLI a Terraform (`iac/` — el starter trae providers de ejemplo para LocalStack).
 
 ## Cómo correr
