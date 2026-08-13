@@ -127,7 +127,7 @@ def test_vpc_subnet_and_s3_gateway_endpoint():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     vpc_id = vpc_demo.ensure_vpc(ec2, "pixelhub-vpc", "10.42.0.0/16")
     subnet_id = vpc_demo.ensure_subnet(ec2, vpc_id, "pixelhub-subnet-app", "10.42.1.0/24")
-    rtb_id = vpc_demo.ensure_route_table(ec2, vpc_id, "pixelhub-rtb-app", subnet_id)
+    rtb_id = vpc_demo.ensure_route_table(ec2, vpc_id, "pixelhub-rtb-app", [subnet_id])
     endpoint_id = vpc_demo.ensure_s3_gateway_endpoint(ec2, vpc_id, rtb_id, "pixelhub-s3-endpoint")
 
     assert endpoint_id is not None
@@ -146,6 +146,31 @@ def test_vpc_ensure_helpers_are_idempotent():
     subnet_id_1 = vpc_demo.ensure_subnet(ec2, vpc_id_1, "pixelhub-subnet-app", "10.42.1.0/24")
     subnet_id_2 = vpc_demo.ensure_subnet(ec2, vpc_id_1, "pixelhub-subnet-app", "10.42.1.0/24")
     assert subnet_id_1 == subnet_id_2
+
+
+@mock_aws
+def test_vpc_two_az_subnets_share_route_table_to_s3_endpoint():
+    """Disponibilidad multi-AZ: dos subredes en dos AZ, misma route table -> mismo acceso a S3."""
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    vpc_id = vpc_demo.ensure_vpc(ec2, "pixelhub-vpc", "10.42.0.0/16")
+    subnet_a = vpc_demo.ensure_subnet(ec2, vpc_id, "pixelhub-subnet-app", "10.42.1.0/24", "us-east-1a")
+    subnet_b = vpc_demo.ensure_subnet(ec2, vpc_id, "pixelhub-subnet-app-b", "10.42.2.0/24", "us-east-1b")
+    assert subnet_a != subnet_b
+
+    az_a = ec2.describe_subnets(SubnetIds=[subnet_a])["Subnets"][0]["AvailabilityZone"]
+    az_b = ec2.describe_subnets(SubnetIds=[subnet_b])["Subnets"][0]["AvailabilityZone"]
+    assert az_a != az_b
+
+    rtb_id = vpc_demo.ensure_route_table(ec2, vpc_id, "pixelhub-rtb-app", [subnet_a, subnet_b])
+    associated = {
+        a.get("SubnetId")
+        for a in ec2.describe_route_tables(RouteTableIds=[rtb_id])["RouteTables"][0]["Associations"]
+    }
+    assert {subnet_a, subnet_b} <= associated
+
+    # segunda corrida: idempotente, no duplica asociaciones ni falla
+    rtb_id_2 = vpc_demo.ensure_route_table(ec2, vpc_id, "pixelhub-rtb-app", [subnet_a, subnet_b])
+    assert rtb_id_2 == rtb_id
 
 
 # ---------------------------------------------------------------- EC2 ----
