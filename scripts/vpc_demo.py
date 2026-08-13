@@ -6,6 +6,12 @@ Con el endpoint, el tráfico de app-01 a S3 va por el backbone de AWS
 (sin NAT Gateway, sin salir a internet, sin costo de endpoint: los
 Gateway Endpoints de S3 son gratis).
 
+Multi-AZ: la red tiene dos subredes en dos AZ distintas, ambas asociadas
+a la misma route table (y por lo tanto con el mismo acceso al Gateway
+Endpoint de S3). app-01 sigue siendo una sola instancia (ver ADR 007 en
+docs/decisions.md) pero la red ya no es un cuello de botella si mañana
+se agrega un Auto Scaling Group multi-AZ.
+
 Idempotente vía find-by-tag: cada ensure_* primero busca por Name tag
 antes de crear.
 """
@@ -20,11 +26,15 @@ from _aws import REGION, client, local_state_dir  # noqa: E402
 
 VPC_NAME = "pixelhub-vpc"
 SUBNET_NAME = "pixelhub-subnet-app"
+SUBNET_B_NAME = "pixelhub-subnet-app-b"
 RTB_NAME = "pixelhub-rtb-app"
 ENDPOINT_NAME = "pixelhub-s3-endpoint"
 
 VPC_CIDR = "10.42.0.0/16"
 SUBNET_CIDR = "10.42.1.0/24"
+SUBNET_B_CIDR = "10.42.2.0/24"
+AZ_A = f"{REGION}a"
+AZ_B = f"{REGION}b"
 
 
 def _find_by_tag(ec2, describe_fn, list_key, id_key, name: str):
@@ -44,7 +54,7 @@ def ensure_vpc(ec2, name: str, cidr: str) -> str:
     return vpc_id
 
 
-def ensure_subnet(ec2, vpc_id: str, name: str, cidr: str) -> str:
+def ensure_subnet(ec2, vpc_id: str, name: str, cidr: str, availability_zone: str | None = None) -> str:
     resp = ec2.describe_subnets(
         Filters=[{"Name": "tag:Name", "Values": [name]}, {"Name": "vpc-id", "Values": [vpc_id]}]
     )
@@ -52,13 +62,16 @@ def ensure_subnet(ec2, vpc_id: str, name: str, cidr: str) -> str:
         subnet_id = resp["Subnets"][0]["SubnetId"]
         print(f"  = subred ya existe: {subnet_id}")
         return subnet_id
-    subnet_id = ec2.create_subnet(VpcId=vpc_id, CidrBlock=cidr)["Subnet"]["SubnetId"]
+    kwargs = {"VpcId": vpc_id, "CidrBlock": cidr}
+    if availability_zone:
+        kwargs["AvailabilityZone"] = availability_zone
+    subnet_id = ec2.create_subnet(**kwargs)["Subnet"]["SubnetId"]
     ec2.create_tags(Resources=[subnet_id], Tags=[{"Key": "Name", "Value": name}])
-    print(f"  + subred creada: {subnet_id}")
+    print(f"  + subred creada: {subnet_id} ({availability_zone or 'AZ por defecto'})")
     return subnet_id
 
 
-def ensure_route_table(ec2, vpc_id: str, name: str, subnet_id: str) -> str:
+def ensure_route_table(ec2, vpc_id: str, name: str, subnet_ids: list[str]) -> str:
     resp = ec2.describe_route_tables(
         Filters=[{"Name": "tag:Name", "Values": [name]}, {"Name": "vpc-id", "Values": [vpc_id]}]
     )
@@ -73,8 +86,11 @@ def ensure_route_table(ec2, vpc_id: str, name: str, subnet_id: str) -> str:
     associations = ec2.describe_route_tables(RouteTableIds=[rtb_id])["RouteTables"][0].get(
         "Associations", []
     )
-    already_associated = any(a.get("SubnetId") == subnet_id for a in associations)
-    if not already_associated:
+    already_associated = {a.get("SubnetId") for a in associations}
+    for subnet_id in subnet_ids:
+        if subnet_id in already_associated:
+            print(f"  = route table ya asociada a la subred {subnet_id}")
+            continue
         ec2.associate_route_table(RouteTableId=rtb_id, SubnetId=subnet_id)
         print(f"  + route table asociada a la subred {subnet_id}")
 
@@ -119,11 +135,12 @@ def main() -> None:
     print("→ VPC de PixelHub")
     vpc_id = ensure_vpc(ec2, VPC_NAME, VPC_CIDR)
 
-    print("→ Subred de app-01")
-    subnet_id = ensure_subnet(ec2, vpc_id, SUBNET_NAME, SUBNET_CIDR)
+    print("→ Subredes de app-01 (multi-AZ)")
+    subnet_id = ensure_subnet(ec2, vpc_id, SUBNET_NAME, SUBNET_CIDR, AZ_A)
+    subnet_id_b = ensure_subnet(ec2, vpc_id, SUBNET_B_NAME, SUBNET_B_CIDR, AZ_B)
 
     print("→ Route table")
-    rtb_id = ensure_route_table(ec2, vpc_id, RTB_NAME, subnet_id)
+    rtb_id = ensure_route_table(ec2, vpc_id, RTB_NAME, [subnet_id, subnet_id_b])
 
     print("→ Gateway Endpoint hacia S3")
     endpoint_id = ensure_s3_gateway_endpoint(ec2, vpc_id, rtb_id, ENDPOINT_NAME)
@@ -131,6 +148,7 @@ def main() -> None:
     state = {
         "vpc_id": vpc_id,
         "subnet_id": subnet_id,
+        "subnet_id_b": subnet_id_b,
         "route_table_id": rtb_id,
         "vpc_endpoint_id": endpoint_id,
     }

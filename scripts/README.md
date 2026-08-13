@@ -5,7 +5,7 @@ todos son tolerantes si falta algo — avisan en vez de crashear):
 
 ```bash
 python scripts/iam_demo.py   # 1. rol + policy + instance profile
-python scripts/vpc_demo.py   # 2. VPC + subred + route table + gateway endpoint
+python scripts/vpc_demo.py   # 2. VPC + 2 subredes (multi-AZ) + route table + gateway endpoint
 python scripts/s3_demo.py    # 3. bucket + versioning + lifecycle + bucket policy
 python scripts/ec2_demo.py   # 4. instancia app-01 con el instance profile
 ```
