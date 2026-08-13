@@ -15,15 +15,16 @@ Todo corre contra **LocalStack** (no AWS real, no hay cuenta ni credenciales rea
 - [x] **Arquitectura decidida**: S3 (bucket versionado + lifecycle a Glacier a 90 días) + IAM Role/instance profile (privilegio mínimo, sin access keys) + VPC Gateway Endpoint (gratis, sin NAT) + EC2 stateless. 4 servicios, cumple el mínimo de la consigna.
 - [x] **Diagrama**: `docs/architecture.drawio` (editable en app.diagrams.net) + `docs/architecture.png` (render), antes/después.
 - [x] **`docs/architecture.md`**: tabla de componentes, SPOFs identificados y decisiones de identidad.
-- [x] **`docs/decisions.md`**: 6 ADRs (alcance, rol IAM vs access keys, VPC endpoint vs NAT, bucket privado vs público, lifecycle a Glacier, estrategia de corte dual-write).
+- [x] **`docs/decisions.md`**: 7 ADRs (alcance, rol IAM vs access keys, VPC endpoint vs NAT, bucket privado vs público, lifecycle a Glacier, estrategia de corte dual-write, multi-AZ/escalabilidad).
 - [x] **`docs/gantt.md` + `gantt.png` + `gantt.csv`**: cronograma de 4 fases (preparación, prueba/dual-write, corte, validación), fechas concretas.
 - [x] **`docs/costs.md`**: estimación mensual con precios reales verificados (S3, EC2 t3.micro, transfer out, Glacier, endpoint gratis) — cargada en calculator.aws, link real pegado (total oficial: $62.42/mes; ver nota sobre free tier en el doc).
 - [x] **`iam/`**: `trust_policy.json`, `s3_access_policy.json` (least privilege, deny explícito de `DeleteObject`), `bucket_policy.json` (deny fuera del VPC endpoint y sin TLS).
-- [x] **`scripts/`**: `iam_demo.py`, `vpc_demo.py`, `s3_demo.py`, `ec2_demo.py` — idempotentes, boto3 contra LocalStack vía `scripts/_aws.py`.
-- [x] **`tests/test_infra.py`**: 10 tests unitarios con `moto` (mockeado, no requiere Docker). **Ya corridos y pasando.**
+- [x] **`scripts/`**: `iam_demo.py`, `vpc_demo.py`, `s3_demo.py`, `ec2_demo.py` — idempotentes, boto3 contra LocalStack vía `scripts/_aws.py`. `vpc_demo.py` crea 2 subredes multi-AZ (ver ADR 007).
+- [x] **`tests/test_infra.py`**: 11 tests unitarios con `moto` (mockeado, no requiere Docker). **Ya corridos y pasando.**
 - [x] **`compose.yaml`**: LocalStack con `SERVICES=s3,iam,ec2,sts`.
 - [x] **Corrida end-to-end contra LocalStack real** (2026-08-04, LocalStack 3.8 vía Docker): los 4 scripts corren en orden, un segundo pase confirma idempotencia (todo "ya existe"), y `pytest -v` da 10/10. El VPC Gateway Endpoint sí se creó en este entorno (a diferencia del gotcha documentado abajo para LocalStack Community). Nota Windows: los prints con `→` rompen en consola cp1252 — correr con `PYTHONUTF8=1`.
 - [x] **Repo creado y pusheado a GitHub**: `agustingarcia210988/tp-cloud-agustin-garcia`, a partir de la estructura del starter.
+- [x] **Multi-AZ (ADR 007) validado end-to-end contra LocalStack real** (2026-08-13): `vpc_demo.py` crea `pixelhub-subnet-app` en `us-east-1a` y `pixelhub-subnet-app-b` en `us-east-1b`, ambas asociadas a la misma route table con el Gateway Endpoint de S3. Segundo pase confirma idempotencia (ninguna subred/asociación duplicada). `pytest -v` → 11/11.
 
 No reabras estas decisiones sin una razón concreta — están documentadas en `docs/decisions.md` con el tradeoff considerado.
 
@@ -39,7 +40,7 @@ pip install -r requirements.txt
 docker compose up -d                 # LocalStack
 
 python scripts/iam_demo.py           # 1. rol + policy + instance profile
-python scripts/vpc_demo.py           # 2. VPC + subred + gateway endpoint
+python scripts/vpc_demo.py           # 2. VPC + 2 subredes (multi-AZ) + route table + gateway endpoint
 python scripts/s3_demo.py            # 3. bucket + versioning + lifecycle + bucket policy
 python scripts/ec2_demo.py           # 4. instancia app-01
 
@@ -60,6 +61,12 @@ Cada script es idempotente (correrlo dos veces no rompe nada) e imprime qué enc
 - `vpc_demo.py::ensure_s3_gateway_endpoint` tiene un `try/except` alrededor de `create_vpc_endpoint`: LocalStack Community puede no soportar bien VPC endpoints. Si falla ahí, es un límite conocido del entorno, no un bug — el diseño (y la bucket policy) igual asumen que el endpoint existe, como lo haría en AWS real.
 - `iam/bucket_policy.json` tiene el placeholder `vpce-REPLACE_WITH_REAL_ENDPOINT_ID`, que `s3_demo.py` reemplaza automáticamente si encuentra `.local/vpc_output.json`. LocalStack Community tampoco evalúa completo el condition key `aws:sourceVpce` — la policy se sube igual como evidencia del diseño correcto.
 - `ec2_demo.py` usa una AMI de referencia (`ami-0c101f26f147fa7fd`) que LocalStack no valida que exista de verdad.
+
+## Gotcha de Docker Desktop en esta máquina (Windows, cuenta corporativa)
+
+Si `docker compose up` cuelga sin responder o Docker Desktop tira `starting services: initializing ... : remove ...\run\<algo>.sock: The file cannot be accessed by the system. (listener: The filename, directory name, or volume label syntax is incorrect.)` — no es un problema del proyecto. Es Docker Desktop atascado intentando borrar un socket Unix viejo bajo `%LOCALAPPDATA%\Docker\run\` o `%LOCALAPPDATA%\docker-secrets-engine\` que Windows no puede tocar (posible interferencia del antivirus/EDR corporativo — pasó con más de un servicio: Inference manager, Secrets Engine). Ni `Remove-Item`, ni `cmd /del`, ni `fsutil`, ni `robocopy /MIR` pueden borrar el archivo individual, y sobrevive a un reinicio de Windows.
+
+**Fix que funcionó:** con Docker Desktop cerrado (matar procesos `*docker*`), renombrar la carpeta *contenedora* completa (no el archivo — eso también falla) con `Rename-Item`, ej. `Rename-Item "$env:LOCALAPPDATA\Docker\run" "run_old"`. Docker Desktop recrea la carpeta limpia al arrancar. Si aparece en otro servicio con otra carpeta, repetir el mismo truco ahí.
 
 ## Rúbrica del curso (para autoevaluarse antes de entregar)
 
