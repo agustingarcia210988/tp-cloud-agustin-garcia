@@ -20,8 +20,14 @@ Ver `architecture.drawio` (editable en [app.diagrams.net](https://app.diagrams.n
 |---|---|---|
 | Disco local (EBS) de `app-01` | **S3** bucket `pixelhub-images`, versionado, lifecycle a Glacier a los 90 días | Bucket policy: sólo el rol de la app, sólo desde el VPC endpoint, sólo TLS |
 | Credenciales hardcodeadas en el código (anti-patrón actual) | **IAM Role** `pixelhub-app-role` asumido vía **instance profile** de EC2 | Trust policy: sólo `ec2.amazonaws.com` puede asumirlo. Identity policy: `GetObject`/`PutObject` sólo bajo `uploads/*`, `DeleteObject` explícitamente denegado |
-| Salida a internet vía gateway/NAT (implícita, no diseñada) | **VPC Gateway Endpoint** hacia S3 (`com.amazonaws.us-east-1.s3`) | Endpoint asociado a la route table de la subred de `app-01`; sin costo por hora ni por GB |
+| Salida a internet vía gateway/NAT (implícita, no diseñada) | **VPC Gateway Endpoint** hacia S3 (`com.amazonaws.us-east-1.s3`) | Endpoint asociado a la route table de las subredes (multi-AZ) de `app-01`; sin costo por hora ni por GB |
 | `app-01` (EC2, monolito con estado) | `app-01` (EC2, **stateless**) — mismo tamaño (`t3.micro`), ahora sin disco de datos que respaldar | Instance profile `pixelhub-app-instance-profile` (sin access keys en el servidor) |
+
+## Disponibilidad multi-AZ y escalabilidad
+
+El storage ya es multi-AZ por diseño: S3 replica cada objeto entre múltiples Availability Zones automáticamente (11 nueves de durabilidad), sin que el proyecto tenga que hacer nada extra. Del lado de la red, la VPC tiene dos subredes en dos AZ distintas (`pixelhub-subnet-app` y `pixelhub-subnet-app-b`), ambas con el mismo acceso al Gateway Endpoint de S3 — preparado para que, el día que se agregue un Auto Scaling Group a `app-01`, no haga falta rediseñar la red.
+
+`app-01` en sí sigue siendo una única instancia (sin Auto Scaling ni Load Balancer): escalar y dar alta disponibilidad al cómputo quedó fuera del alcance de este componente a propósito — ver ADR 007 en `decisions.md` para el detalle del tradeoff.
 
 ## Puntos únicos de falla identificados
 
@@ -31,6 +37,7 @@ Ver `architecture.drawio` (editable en [app.diagrams.net](https://app.diagrams.n
 | Credenciales de larga duración si se usara un IAM user en vez de un rol | Instance profile + STS: credenciales temporales, rotadas automáticamente cada pocas horas, nunca persistidas en disco |
 | Acceso a S3 dependiente de una ruta a internet (NAT Gateway: costo + punto de falla + latencia) | VPC Gateway Endpoint: ruta privada por el backbone de AWS, sin NAT, sin exposición a internet, gratis |
 | Storage y cómputo acoplados en la misma instancia | Al desacoplar, `app-01` puede escalar (Auto Scaling) sin arrastrar el storage; varias instancias pueden compartir el mismo bucket |
+| `app-01` es una única instancia en una única AZ: si la instancia o la AZ cae, la app entera cae (aunque las imágenes en S3 sobrevivan) | Fuera de alcance de este componente (ADR 007) — la red ya está en 2 AZ, lista para un Auto Scaling Group + ALB multi-AZ como siguiente paso |
 
 ## Decisiones de identidad
 
