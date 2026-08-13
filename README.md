@@ -23,29 +23,38 @@ Son 4, el mínimo que pide la consigna. El porqué de cada uno está en `docs/de
 
 ## Cómo correrlo
 
-Hace falta Docker, Docker Compose y Python 3.11+.
+Hace falta Docker, Docker Compose y Python 3.11+ (y `pip install -r requirements.txt` antes de lo que sigue).
 
 ```bash
-pip install -r requirements.txt
-docker compose up -d          # levanta LocalStack
+make up      # levanta LocalStack y crea toda la infraestructura
+make test    # corre los tests
+make down    # apaga LocalStack
+```
 
+Si no tenés `make` a mano (Windows sin WSL/Git Bash con make instalado), es lo mismo que corre el `Makefile` por dentro:
+
+```bash
+docker compose up -d
 python scripts/iam_demo.py
 python scripts/vpc_demo.py
 python scripts/s3_demo.py
 python scripts/ec2_demo.py
-
-pytest -v                     # tests con moto, no necesitan Docker corriendo
+pytest -v
 ```
 
 Los scripts se pueden correr más de una vez sin que rompan nada: antes de crear algo, primero se fijan si ya existe. Lo probé corriendo la secuencia completa dos veces contra LocalStack real.
+
+Cada push corre los tests solo en GitHub Actions (`.github/workflows/ci.yml`) — no necesita Docker porque están mockeados con `moto`.
 
 ## Estructura del repo
 
 ```
 .
 ├── README.md
+├── Makefile                # up · test · down
 ├── compose.yaml            # LocalStack
 ├── requirements.txt
+├── .github/workflows/ci.yml # corre los tests en cada push
 ├── docs/
 │   ├── architecture.md     # componentes, puntos de falla, identidad
 │   ├── architecture.drawio # diagrama editable (app.diagrams.net)
