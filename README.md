@@ -1,6 +1,6 @@
 # PixelHub — Migración de Galería de Imágenes a S3
 
-Proyecto integrador de Cloud Computing (AWS), ITBA — a partir del [starter del curso](https://github.com/maxflorentin/proyecto-final-starter).
+Proyecto integrador Arquitectura Cloud - ITBA
 
 > Agustín Garcia — proyecto individual
 
@@ -81,9 +81,3 @@ Cada push corre los tests solo en GitHub Actions (`.github/workflows/ci.yml`) �
 ## Sobre los costos
 
 `docs/costs.md` tiene el desglose mensual y el link a la estimación cargada en calculator.aws. El dato interesante: el 80% del costo es transfer out a internet, no el storage — porque `app-01` todavía sirve las imágenes directo al navegador sin CDN. Si el tráfico creciera, ahí es donde convendría poner CloudFront antes que optimizar S3.
-
-## Qué falta
-
-Subir a mano los dos PNG (`docs/architecture.png` y `docs/gantt.png`) — son binarios y no entran bien por el flujo que vengo usando para pushear, así que quedan para arrastrar directo por la web de GitHub.
-
-> Nota para Windows: si te tira `UnicodeEncodeError` corriendo los scripts, es la consola en codepage cp1252 que no banca las flechas (`→`) de los prints. Se soluciona corriendo con `PYTHONUTF8=1` antes (`set PYTHONUTF8=1` en cmd). En Linux o Mac no pasa, la consola ya es UTF-8.
